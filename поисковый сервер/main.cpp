@@ -6,6 +6,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
+
+#define infelicity 1e-6
 
 using namespace std;
 
@@ -82,50 +85,40 @@ public:
     vector<Document> FindTopDocuments(const string& raw_query, KeyMapper key_mapper) const {            
         const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query);
-        vector<Document> matched_documents2;
+        vector<Document> matched_documents_filtered;
         for(auto& doc: matched_documents)
         {
             if(!key_mapper(doc.id, documents_.at(doc.id).status, doc.rating))
             {
                 continue;
             }
-            matched_documents2.push_back({
+            matched_documents_filtered.push_back({
                 doc.id,
                 doc.relevance,
                 doc.rating
             });
         }
         
-        sort(matched_documents2.begin(), matched_documents2.end(),
+        sort(matched_documents_filtered.begin(), matched_documents_filtered.end(),
              [](const Document& lhs, const Document& rhs) {
-                if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                if (abs(lhs.relevance - rhs.relevance) < infelicity) {
                     return lhs.rating > rhs.rating;
                 } else {
                     return lhs.relevance > rhs.relevance;
                 }
              });
-        if (matched_documents2.size() > MAX_RESULT_DOCUMENT_COUNT) {
-            matched_documents2.resize(MAX_RESULT_DOCUMENT_COUNT);
+        if (matched_documents_filtered.size() > MAX_RESULT_DOCUMENT_COUNT) {
+            matched_documents_filtered.resize(MAX_RESULT_DOCUMENT_COUNT);
         }
-        return matched_documents2;
+        return matched_documents_filtered;
     }
     
      vector<Document> FindTopDocuments(const string& raw_query) const { 
         return FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
     }
     
-    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status) const{
-        switch (status) {
-        case DocumentStatus::ACTUAL:
-            return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
-        case DocumentStatus::IRRELEVANT:
-            return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::IRRELEVANT; });
-        case DocumentStatus::BANNED:
-            return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) {return status == DocumentStatus::BANNED; });
-        case DocumentStatus::REMOVED:
-            return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::REMOVED; });
-        }
-        return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
+    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus this_status) const{
+            return FindTopDocuments(raw_query, [this_status](int document_id, DocumentStatus status, int rating) { return status == this_status; });
     }
     
 
@@ -184,10 +177,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0); 
         return rating_sum / static_cast<int>(ratings.size());
     }
     
