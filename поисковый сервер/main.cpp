@@ -39,7 +39,7 @@ void TestCheckFindingRightDocs() {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("cat"s);
-        ASSERT_EQUAL(found_docs.size(), 1);
+        ASSERT_EQUAL(found_docs.size(), 1u);
         const Document& doc0 = found_docs[0];
         ASSERT_EQUAL(doc0.id, doc_id);
     }    
@@ -53,7 +53,7 @@ void TestCheckMinusWords() {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("-cat -in -the -city"s);
-        ASSERT_EQUAL(found_docs.size(), 0);
+        ASSERT(found_docs.empty());
     }    
 }
 
@@ -65,13 +65,16 @@ void TestCheckMatching() {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("cat in the city"s);
-        ASSERT_EQUAL(found_docs.size(), 1);
         const Document& doc0 = found_docs[0];
         ASSERT_EQUAL(doc0.id, doc_id);
+        set<string> expectation = {"cat"s, "in"s, "the"s, "city"s};
+        const auto [words, status] = server.MatchDocument("cat in the city"s, document_id);
+        set<string> s(words.begin(), words.end());
+        ASSERT_EQUAL(s, expectation);
     }    
 }
 
-void TestCheckMatching_and_MinusWords() {
+void TestCheckMatchingAndMinusWords() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const vector<int> ratings = {1, 2, 3};
@@ -83,7 +86,7 @@ void TestCheckMatching_and_MinusWords() {
     }    
 }
 
-void TestCheckRelevantnost() {
+void TestCheckRelevance() {
     const int doc_id = 1;
     const string content = "cat in the city"s;
     const int doc_id2 = 2;
@@ -95,10 +98,10 @@ void TestCheckRelevantnost() {
     const vector<int> ratings = {1, 2, 3};
     {
         SearchServer server;
-        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings);
-        server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings);
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("cat in the city"s);
         ASSERT(found_docs[0].id == 1);
         ASSERT(found_docs[1].id == 2);
@@ -117,7 +120,7 @@ void TestCheckRightRating() {
         const auto found_docs = server.FindTopDocuments("cat in the city"s);
         ASSERT(found_docs.size() == 1);
         const Document& doc0 = found_docs[0];
-        ASSERT(doc0.rating == 2);
+        ASSERT(doc0.rating == (1 + 2 + 3) / 3);
     }    
 }
 
@@ -163,7 +166,7 @@ void TestCheckRightRelevance() {
         const auto found_docs = server.FindTopDocuments("кот"s);
         ASSERT(found_docs.size() == 1);
         const Document& doc0 = found_docs[0];
-        ASSERT_EQUAL(doc0.relevance, 0);
+        ASSERT_EQUAL(doc0.relevance, log(1.0 / 1);
      
 }
 
@@ -172,8 +175,8 @@ void TestSearchServer() {
     RUN_TEST(TestCheckFindingRightDocs);
     RUN_TEST(TestCheckMinusWords);
     RUN_TEST(TestCheckMatching);
-    RUN_TEST(TestCheckMatching_and_MinusWords);
-    RUN_TEST(TestCheckRelevantnost);
+    RUN_TEST(TestCheckMatchingAndMinusWords);
+    RUN_TEST(TestCheckRelevance);
     RUN_TEST(TestCheckRightRating);
     RUN_TEST(TestCheckPredicate);
     RUN_TEST(TestCheckSearchByStatus);    
