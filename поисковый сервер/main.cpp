@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 using namespace std;
 
@@ -88,7 +89,9 @@ public:
         const set<string> words=MakeUniqueNonEmptyStrings(stop_words);
          for(const auto word: words)
         {
-            if(IsValidWord(word)==false)
+            if(any_of(word.begin(), word.end(), [](char c) {
+            return c >= '\0' && c < ' ';
+        }))
             {
                 throw invalid_argument("Invalid symbol in stop_words");
             }
@@ -97,15 +100,7 @@ public:
 
     explicit SearchServer(const string& stop_words_text)
         : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor from string container
-    {
-        const vector<string> words=SplitIntoWords(stop_words_text);
-         for(const auto word: words)
-        {
-            if(IsValidWord(word)==false)
-            {
-                throw invalid_argument("Invalid symbol in stop words");
-            }
-        }
+    { 
     }
 
     void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
@@ -128,9 +123,7 @@ public:
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
         Query query;
-        if (!ParseQuery(raw_query, query)) {
-            throw invalid_argument("invalid symbol in query");
-        }
+        ParseQuery(raw_query, query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
 
         sort(matched_documents.begin(), matched_documents.end(), [](const Document& lhs, const Document& rhs) {
@@ -174,9 +167,7 @@ public:
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         // Empty result by initializing it with default constructed tuple
         Query query;
-        if (!ParseQuery(raw_query, query)) {
-            throw invalid_argument("invalid symbol in query");
-        }
+        ParseQuery(raw_query, query);
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
@@ -239,17 +230,14 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);  
         return rating_sum / static_cast<int>(ratings.size());
     }
 
     struct QueryWord {
         string data;
-        bool is_minus;
-        bool is_stop;
+        bool is_minus=true;
+        bool is_stop=true;
     };
 
     [[nodiscard]] bool ParseQueryWord(string text, QueryWord& result) const {
@@ -277,13 +265,13 @@ private:
         set<string> minus_words;
     };
 
-    [[nodiscard]] bool ParseQuery(const string& text, Query& result) const {
+    void ParseQuery(const string& text, Query& result) const {
         // Empty result by initializing it with default constructed Query
         result = {};
         for (const string& word : SplitIntoWords(text)) {
             QueryWord query_word;
             if (!ParseQueryWord(word, query_word)) {
-                return false;
+                throw invalid_argument("invalid symbol in query");
             }
             if (!query_word.is_stop) {
                 if (query_word.is_minus) {
@@ -293,7 +281,6 @@ private:
                 }
             }
         }
-        return true;
     }
 
     // Existence required
