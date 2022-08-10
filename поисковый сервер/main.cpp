@@ -86,8 +86,7 @@ public:
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-        const set<string> words=MakeUniqueNonEmptyStrings(stop_words);
-         for(const auto word: words)
+         for(const auto word: stop_words_)
         {
             if(any_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
@@ -122,8 +121,7 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-        Query query;
-        ParseQuery(raw_query, query);
+        Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
 
         sort(matched_documents.begin(), matched_documents.end(), [](const Document& lhs, const Document& rhs) {
@@ -166,8 +164,7 @@ public:
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         // Empty result by initializing it with default constructed tuple
-        Query query;
-        ParseQuery(raw_query, query);
+        Query query = ParseQuery(raw_query);
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
@@ -265,9 +262,9 @@ private:
         set<string> minus_words;
     };
 
-    void ParseQuery(const string& text, Query& result) const {
+    Query ParseQuery(const string& text) const {
         // Empty result by initializing it with default constructed Query
-        result = {};
+        Query result;
         for (const string& word : SplitIntoWords(text)) {
             QueryWord query_word;
             if (!ParseQueryWord(word, query_word)) {
@@ -281,6 +278,7 @@ private:
                 }
             }
         }
+        return result;
     }
 
     // Existence required
