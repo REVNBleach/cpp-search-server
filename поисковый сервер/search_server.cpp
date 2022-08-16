@@ -1,6 +1,7 @@
 #include "search_server.h"
 #include "read_input_functions.h"
 #include "document.h"
+using namespace std;
 
     SearchServer::SearchServer(const string& stop_words_text)
         : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor
@@ -88,16 +89,14 @@
         return words;
     }
 
-    int SearchServer::ComputeAverageRating(const vector<int>& ratings) {
-        if (ratings.empty()) {
-            return 0;
-        }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
-    }
+    int SearchServer::ComputeAverageRating(const vector<int>& ratings) { 
+        if (ratings.empty()) { 
+            return 0; 
+        } 
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);   
+        return rating_sum / static_cast<int>(ratings.size()); 
+
+    } 
 
     QueryWord SearchServer::ParseQueryWord(const string& text) const {
         if (text.empty()) {
