@@ -1,6 +1,7 @@
 #include "string_processing.h"
 #include "search_server.h"
 #include "document.h"
+using namespace std;
 
 void PrintDocument(const Document& document) {
     cout << "{ "s
