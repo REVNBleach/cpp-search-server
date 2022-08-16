@@ -1,5 +1,7 @@
 #include "read_input_functions.h"
 #include "search_server.h"
+using namespace std;
+
 string ReadLine() {
     string s;
     getline(cin, s);
@@ -32,3 +34,4 @@ vector<string> SplitIntoWords(const string& text) {
 
     return words;
 }
+
