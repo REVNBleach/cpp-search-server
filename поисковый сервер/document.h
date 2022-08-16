@@ -2,10 +2,6 @@
 
 #include <iostream>
 
-
-using namespace std;
-
-
 struct Document {
     Document();
 
